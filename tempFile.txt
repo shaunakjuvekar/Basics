@@ -1,0 +1,2110 @@
+commit 9aebc4708ad21cc18f6d5c6909381abb0fe01023
+Author: Ævar Arnfjörð Bjarmason <avarab@gmail.com>
+Date:   Sat Jan 23 14:00:44 2021 +0100
+
+    upload-pack tests: avoid a non-zero "grep" exit status
+    
+    Continue changing a test that 763b47bafa (t5703: stop losing return
+    codes of git commands, 2019-11-27) already refactored.
+    
+    This was originally added as part of a series to add support for
+    running under bash's "set -o pipefail", under that mode this test will
+    fail because sometimes there's no commits in the "objs" output.
+    
+    It's easier to fix that than exempt these tests under a hypothetical
+    "set -o pipefail" test mode. It looks like we probably won't have
+    that, but once we've dug this code up let's refactor it[2] so we don't
+    hide a potential pipe failure.
+    
+    1. https://lore.kernel.org/git/xmqqzh18o8o6.fsf@gitster.c.googlers.com/
+    
+    Signed-off-by: Ævar Arnfjörð Bjarmason <avarab@gmail.com>
+    Signed-off-by: Junio C Hamano <gitster@pobox.com>
+
+commit e2f89586fa6d22bfb176e2f679584464fa1a282d
+Author: Philippe Blain <levraiphilippeblain@gmail.com>
+Date:   Thu Oct 29 12:48:29 2020 +0000
+
+    log, show: add tests for messages containing CRLF
+    
+    A previous commit adjusted the code in ref-filter.c so that messages
+    containing CRLF are now correctly parsed and displayed.
+    
+    Add tests to also check that `git log` and `git show` correctly handle
+    such messages, to prevent futur regressions if these commands are
+    refactored to use the ref-filter API.
+    
+    Signed-off-by: Philippe Blain <levraiphilippeblain@gmail.com>
+    Signed-off-by: Junio C Hamano <gitster@pobox.com>
+
+commit cea69151a4d4c0861a6dd5006267141b04ebbadb
+Author: Jeff King <peff@peff.net>
+Date:   Wed Oct 7 14:19:23 2020 -0400
+
+    index-pack: restore "resolving deltas" progress meter
+    
+    Commit f08cbf60fe (index-pack: make quantum of work smaller, 2020-09-08)
+    refactored the main loop in threaded_second_pass(), but also deleted the
+    call to display_progress() at the top of the loop. This means that users
+    typically see no progress at all during the delta resolution phase (and
+    for large repositories, Git appears to hang).
+    
+    This looks like an accident that was unrelated to the intended change of
+    that commit, since we continue to update nr_resolved_deltas in
+    resolve_delta(). Let's restore the call to get that progress back.
+    
+    We'll also add a test that confirms we generate the expected progress.
+    This isn't perfect, as it wouldn't catch a bug where progress was
+    delayed to the end. That was probably possible to trigger when receiving
+    a thin pack, because we'd eventually call display_progress() from
+    fix_unresolved_deltas(), but only once after doing all the work.
+    However, since our test case generates a complete pack, it reliably
+    demonstrates this particular bug and its fix. And we can't do better
+    without making the test racy.
+    
+    Signed-off-by: Jeff King <peff@peff.net>
+    Acked-by: Jonathan Tan <jonathantanmy@google.com>
+    Signed-off-by: Junio C Hamano <gitster@pobox.com>
+
+commit 873fa13e3fd7c2644578577f4274ce92ed891a42
+Merge: 95c687bf85 11868978c7
+Author: Junio C Hamano <gitster@pobox.com>
+Date:   Mon Aug 17 17:02:43 2020 -0700
+
+    Merge branch 'pd/mergetool-nvimdiff'
+    
+    The existing backends for "git mergetool" based on variants of vim
+    have been refactored and then support for "nvim" has been added.
+    
+    * pd/mergetool-nvimdiff:
+      mergetools: add support for nvimdiff (neovim) family
+      mergetool--lib: improve support for vimdiff-style tool variants
+
+commit 2fa05f31bd95eed34d6e8848b6b1e6265674f50a
+Author: Taylor Blau <me@ttaylorr.com>
+Date:   Mon Apr 13 22:04:04 2020 -0600
+
+    t/helper/test-read-graph.c: support commit-graph chains
+    
+    In 61df89c8e5 (commit-graph: don't early exit(1) on e.g. "git status",
+    2019-03-25), the former 'load_commit_graph_one' was refactored into
+    'open_commit_graph' and 'load_commit_graph_one_fd_st' as a means of
+    avoiding an early-exit from non-library code.
+    
+    However, 'load_commit_graph_one' does not support commit-graph chains,
+    and hence the 'read-graph' test tool does not work with them.
+    
+    Replace 'load_commit_graph_one' with 'read_commit_graph_one' in order to
+    support commit-graph chains. In the spirit of 61df89c8e5,
+    'read_commit_graph_one' does not ever 'die()', making it a suitable
+    replacement here.
+    
+    Signed-off-by: Taylor Blau <me@ttaylorr.com>
+    Signed-off-by: Junio C Hamano <gitster@pobox.com>
+
+commit fa82be982dfc5b463a125991a2d381f1cd0ad9eb
+Merge: f8cb64e3d4 6794898198
+Author: Junio C Hamano <gitster@pobox.com>
+Date:   Thu Mar 26 17:11:20 2020 -0700
+
+    Merge branch 'hi/gpg-prefer-check-signature'
+    
+    The code to interface with GnuPG has been refactored.
+    
+    * hi/gpg-prefer-check-signature:
+      gpg-interface: prefer check_signature() for GPG verification
+      t: increase test coverage of signature verification output
+
+commit 25063e2530e2fbdccf5d372a8ad80309421c9df1
+Merge: f4d7dfce4d 6c69f22233
+Author: Junio C Hamano <gitster@pobox.com>
+Date:   Thu Mar 5 10:43:02 2020 -0800
+
+    Merge branch 'mr/bisect-in-c-1'
+    
+    Underlying machinery of "git bisect--helper" is being refactored
+    into pieces that are more easily reused.
+    
+    * mr/bisect-in-c-1:
+      bisect: libify `bisect_next_all`
+      bisect: libify `handle_bad_merge_base` and its dependents
+      bisect: libify `check_good_are_ancestors_of_bad` and its dependents
+      bisect: libify `check_merge_bases` and its dependents
+      bisect: libify `bisect_checkout`
+      bisect: libify `exit_if_skipped_commits` to `error_if_skipped*` and its dependents
+      bisect--helper: return error codes from `cmd_bisect__helper()`
+      bisect: add enum to represent bisect returning codes
+      bisect--helper: introduce new `decide_next()` function
+      bisect: use the standard 'if (!var)' way to check for 0
+      bisect--helper: change `retval` to `res`
+      bisect--helper: convert `vocab_*` char pointers to char arrays
+
+commit 6b9919c0a21ab516626f5e1849293df7cda1dd64
+Author: Pratyush Yadav <me@yadavpratyush.com>
+Date:   Mon Feb 17 21:34:45 2020 +0530
+
+    git-gui: add missing close bracket
+    
+    In d9c6469 (git-gui: update status bar to track operations, 2019-12-01),
+    the status bar was refactored to allow multiple overlapping operations.
+    
+    Since the refactor changed the status bar interface, all callsites had
+    to be refactored to use the new interface. During that refactoring, this
+    closing bracket was missed. This leads to an error message popping up
+    when doing 'Branch->Reset...'.
+    
+    Signed-off-by: Pratyush Yadav <me@yadavpratyush.com>
+
+commit 0be5caf97ce1ad5f3c10ac00875f9aaf4939339d
+Merge: 0e07c1cd83 d784d978f6
+Author: Junio C Hamano <gitster@pobox.com>
+Date:   Sun Dec 1 09:04:28 2019 -0800
+
+    Merge branch 'jc/log-graph-simplify'
+    
+    The implementation of "git log --graph" got refactored and then its
+    output got simplified.
+    
+    * jc/log-graph-simplify:
+      t4215: use helper function to check output
+      graph: fix coloring of octopus dashes
+      graph: flatten edges that fuse with their right neighbor
+      graph: smooth appearance of collapsing edges on commit lines
+      graph: rename `new_mapping` to `old_mapping`
+      graph: commit and post-merge lines for left-skewed merges
+      graph: tidy up display of left-skewed merges
+      graph: example of graph output that can be simplified
+      graph: extract logic for moving to GRAPH_PRE_COMMIT state
+      graph: remove `mapping_idx` and `graph_update_width()`
+      graph: reduce duplication in `graph_insert_into_new_columns()`
+      graph: reuse `find_new_column_by_commit()`
+      graph: handle line padding in `graph_next_line()`
+      graph: automatically track display width of graph lines
+
+commit 8e4c8af058d7eb1b887184deb3bf79f3818b3a65
+Author: Thomas Gummerer <t.gummerer@gmail.com>
+Date:   Mon Sep 2 19:08:28 2019 +0100
+
+    push: disallow --all and refspecs when remote.<name>.mirror is set
+    
+    Pushes with --all, or refspecs are disallowed when --mirror is given
+    to 'git push', or when 'remote.<name>.mirror' is set in the config of
+    the repository, because they can have surprising
+    effects. 800a4ab399 ("push: check for errors earlier", 2018-05-16)
+    refactored this code to do that check earlier, so we can explicitly
+    check for the presence of flags, instead of their sideeffects.
+    
+    However when 'remote.<name>.mirror' is set in the config, the
+    TRANSPORT_PUSH_MIRROR flag would only be set after we calling
+    'do_push()', so the checks would miss it entirely.
+    
+    This leads to surprises for users [*1*].
+    
+    Fix this by making sure we set the flag (if appropriate) before
+    checking for compatibility of the various options.
+    
+    *1*: https://twitter.com/FiloSottile/status/1163918701462249472
+    
+    Reported-by: Filippo Valsorda <filippo@ml.filippo.io>
+    Helped-by: Saleem Rashid
+    Signed-off-by: Thomas Gummerer <t.gummerer@gmail.com>
+    Signed-off-by: Junio C Hamano <gitster@pobox.com>
+
+commit 3012397e0327f5e4dfd1d1183a792268429744ae
+Author: Matheus Tavares <matheus.bernardino@usp.br>
+Date:   Wed Jul 10 20:58:59 2019 -0300
+
+    dir-iterator: refactor state machine model
+    
+    dir_iterator_advance() is a large function with two nested loops. Let's
+    improve its readability factoring out three functions and simplifying
+    its mechanics. The refactored model will no longer depend on
+    level.initialized and level.dir_state to keep track of the iteration
+    state and will perform on a single loop.
+    
+    Also, dir_iterator_begin() currently does not check if the given string
+    represents a valid directory path. Since the refactored model will have
+    to stat() the given path at initialization, let's also check for this
+    kind of error and make dir_iterator_begin() return NULL, on failures,
+    with errno appropriately set. And add tests for this new behavior.
+    
+    Improve documentation at dir-iteration.h and code comments at
+    dir-iterator.c to reflect the changes and eliminate possible
+    ambiguities.
+    
+    Finally, adjust refs/files-backend.c to check for now possible
+    dir_iterator_begin() failures.
+    
+    Original-patch-by: Daniel Ferreira <bnmvco@gmail.com>
+    Signed-off-by: Matheus Tavares <matheus.bernardino@usp.br>
+    Signed-off-by: Junio C Hamano <gitster@pobox.com>
+
+commit e62e68d35949235435ea7f7d22ab6ea678fd46b0
+Merge: 5795a75f9b ed35d18841
+Author: Junio C Hamano <gitster@pobox.com>
+Date:   Thu Apr 25 16:41:11 2019 +0900
+
+    Merge branch 'ag/sequencer-reduce-rewriting-todo'
+    
+    The scripted version of "git rebase -i" wrote and rewrote the todo
+    list many times during a single step of its operation, and the
+    recent C-rewrite made a faithful conversion of the logic to C.  The
+    implementation has been updated to carry necessary information
+    around in-core to avoid rewriting the same file over and over
+    unnecessarily.
+    
+    * ag/sequencer-reduce-rewriting-todo:
+      rebase--interactive: move transform_todo_file()
+      sequencer: use edit_todo_list() in complete_action()
+      rebase-interactive: rewrite edit_todo_list() to handle the initial edit
+      rebase-interactive: append_todo_help() changes
+      rebase-interactive: use todo_list_write_to_file() in edit_todo_list()
+      sequencer: refactor skip_unnecessary_picks() to work on a todo_list
+      rebase--interactive: move rearrange_squash_in_todo_file()
+      rebase--interactive: move sequencer_add_exec_commands()
+      sequencer: change complete_action() to use the refactored functions
+      sequencer: make sequencer_make_script() write its script to a strbuf
+      sequencer: refactor rearrange_squash() to work on a todo_list
+      sequencer: refactor sequencer_add_exec_commands() to work on a todo_list
+      sequencer: refactor check_todo_list() to work on a todo_list
+      sequencer: introduce todo_list_write_to_file()
+      sequencer: refactor transform_todos() to work on a todo_list
+      sequencer: remove the 'arg' field from todo_item
+      sequencer: make the todo_list structure public
+      sequencer: changes in parse_insn_buffer()
+
+commit 464c824a9b3daf49b1451746780c787279cbf79f
+Merge: e902e9bcae ed35d18841
+Author: Junio C Hamano <gitster@pobox.com>
+Date:   Thu Mar 21 12:10:40 2019 +0900
+
+    Merge branch 'ag/sequencer-reduce-rewriting-todo' into pw/rebase-i-internal
+    
+    * ag/sequencer-reduce-rewriting-todo:
+      rebase--interactive: move transform_todo_file()
+      sequencer: use edit_todo_list() in complete_action()
+      rebase-interactive: rewrite edit_todo_list() to handle the initial edit
+      rebase-interactive: append_todo_help() changes
+      rebase-interactive: use todo_list_write_to_file() in edit_todo_list()
+      sequencer: refactor skip_unnecessary_picks() to work on a todo_list
+      rebase--interactive: move rearrange_squash_in_todo_file()
+      rebase--interactive: move sequencer_add_exec_commands()
+      sequencer: change complete_action() to use the refactored functions
+      sequencer: make sequencer_make_script() write its script to a strbuf
+      sequencer: refactor rearrange_squash() to work on a todo_list
+      sequencer: refactor sequencer_add_exec_commands() to work on a todo_list
+      sequencer: refactor check_todo_list() to work on a todo_list
+      sequencer: introduce todo_list_write_to_file()
+      sequencer: refactor transform_todos() to work on a todo_list
+      sequencer: remove the 'arg' field from todo_item
+      sequencer: make the todo_list structure public
+      sequencer: changes in parse_insn_buffer()
+
+commit 94bcad797966b6a3490bc6806d3ee3eed54da9d9
+Author: Alban Gruin <alban.gruin@gmail.com>
+Date:   Tue Mar 5 20:17:57 2019 +0100
+
+    sequencer: change complete_action() to use the refactored functions
+    
+    complete_action() used functions that read the todo-list file, made some
+    changes to it, and wrote it back to the disk.
+    
+    The previous commits were dedicated to separate the part that deals with
+    the file from the actual logic of these functions.  Now that this is
+    done, we can call directly the "logic" functions to avoid useless file
+    access.
+    
+    The parsing of the list has to be done by the caller.  If the buffer of
+    the todo list provided by the caller is empty, a `noop' command is
+    directly added to the todo list, without touching the buffer.
+    
+    Signed-off-by: Alban Gruin <alban.gruin@gmail.com>
+    Signed-off-by: Junio C Hamano <gitster@pobox.com>
+
+commit e04df61256a40e860dfcc5518fd4f0558c8c2f03
+Author: Jeff King <peff@peff.net>
+Date:   Thu Feb 14 00:48:13 2019 -0500
+
+    diff: drop unused color reset parameters
+    
+    Several of the emit_* functions take a "reset" color parameter, but
+    never actually look at it (instead, they call into emit_diff_symbol,
+    which handles the colors itself). Let's drop these unused parameters.
+    
+    Note that emit_line() does still take a color/reset pair, and actually
+    uses it. It cannot be refactored to match these other functions because
+    it's the thing that emit_diff_symbol eventually calls into (i.e., it
+    does not by itself know which colors to use, and must be told by the
+    caller).
+    
+    Signed-off-by: Jeff King <peff@peff.net>
+    Signed-off-by: Junio C Hamano <gitster@pobox.com>
+
+commit 7b95849be42406b2e23bcdc4592d71d8724361ba
+Author: Jeff King <peff@peff.net>
+Date:   Fri Jan 18 16:34:58 2019 -0500
+
+    attr: do not mark queried macros as unset
+    
+    Since 60a12722ac (attr: remove maybe-real, maybe-macro from git_attr,
+    2017-01-27), we will always mark an attribute macro (e.g., "binary")
+    that is specifically queried for as "unspecified", even though listing
+    _all_ attributes would display it at set. E.g.:
+    
+      $ echo "* binary" >.gitattributes
+    
+      $ git check-attr -a file
+      file: binary: set
+      file: diff: unset
+      file: merge: unset
+      file: text: unset
+    
+      $ git check-attr binary file
+      file: binary: unspecified
+    
+    The problem stems from an incorrect conversion of the optimization from
+    06a604e670 (attr: avoid heavy work when we know the specified attr is
+    not defined, 2014-12-28). There we tried in collect_some_attrs() to
+    avoid even looking at the attr_stack when the user has asked for "foo"
+    and we know that "foo" did not ever appear in any .gitattributes file.
+    
+    It used a flag "maybe_real" in each attribute struct, where "real" meant
+    that the attribute appeared in an actual file (we have to make this
+    distinction because we also create an attribute struct for any names
+    that are being queried). But as explained in that commit message, the
+    meaning of "real" was tangled with some special cases around macros.
+    
+    When 60a12722ac later refactored the macro code, it dropped maybe_real
+    entirely. This missed the fact that "maybe_real" could be unset for two
+    reasons: because of a macro, or because it was never found during
+    parsing. This had two results:
+    
+      - the optimization in collect_some_attrs() ceased doing anything
+        meaningful, since it no longer kept track of "was it found during
+        parsing"
+    
+      - worse, it actually kicked in when the caller _did_ ask about a macro
+        by name, causing us to mark it as unspecified
+    
+    It should be possible to salvage this optimization, but let's start with
+    just removing the remnants. It hasn't been doing anything (except
+    creating bugs) since 60a12722ac, and nobody seems to have noticed the
+    performance regression. It's more important to fix the correctness
+    problem clearly first.
+    
+    I've added two tests here. The second one actually shows off the bug.
+    The test of "check-attr -a" is not strictly necessary, but we currently
+    do not test attribute macros much, and the builtin "binary" not at all.
+    So this increases our general test coverage, as well as making sure we
+    didn't mess up this related case.
+    
+    Signed-off-by: Jeff King <peff@peff.net>
+    Signed-off-by: Junio C Hamano <gitster@pobox.com>
+
+commit b67f6b26e354813d8cd792dcb3eb1a1b60b98a08
+Author: Derrick Stolee <dstolee@microsoft.com>
+Date:   Fri Sep 21 08:05:26 2018 -0700
+
+    commit-reach: properly peel tags
+    
+    The can_all_from_reach_with_flag() algorithm was refactored in 4fbcca4e
+    "commit-reach: make can_all_from_reach... linear" but incorrectly
+    assumed that all objects provided were commits. During a fetch
+    negotiation, ok_to_give_up() in upload-pack.c may provide unpeeled tags
+    to the 'from' array. The current code creates a segfault.
+    
+    Add a direct call to can_all_from_reach_with_flag() in 'test-tool reach'
+    and add a test in t6600-test-reach.sh that demonstrates this segfault.
+    
+    Correct the issue by peeling tags when investigating the initial list
+    of objects in the 'from' array.
+    
+    Signed-off-by: Jeff King <peff@peff.net>
+    Signed-off-by: Derrick Stolee <dstolee@microsoft.com>
+    Signed-off-by: Junio C Hamano <gitster@pobox.com>
+
+commit 6c003d6ffb7ebd1599e73921cab5e01d7428001d
+Author: Jeff King <peff@peff.net>
+Date:   Tue Sep 4 19:36:43 2018 -0400
+
+    reopen_tempfile(): truncate opened file
+    
+    We provide a reopen_tempfile() function, which is in turn
+    used by reopen_lockfile().  The idea is that a caller may
+    want to rewrite the tempfile without letting go of the lock.
+    And that's what our one caller does: after running
+    add--interactive, "commit -p" will update the cache-tree
+    extension of the index and write out the result, all while
+    holding the lock.
+    
+    However, because we open the file with only the O_WRONLY
+    flag, the existing index content is left in place, and we
+    overwrite it starting at position 0. If the new index after
+    updating the cache-tree is smaller than the original, those
+    final bytes are not overwritten and remain in the file. This
+    results in a corrupt index, since those cruft bytes are
+    interpreted as part of the trailing hash (or even as an
+    extension, if there are enough bytes).
+    
+    This bug actually pre-dates reopen_tempfile(); the original
+    code from 9c4d6c0297 (cache-tree: Write updated cache-tree
+    after commit, 2014-07-13) has the same bug, and those lines
+    were eventually refactored into the tempfile module. Nobody
+    noticed until now for two reasons:
+    
+     - the bug can only be triggered in interactive mode
+       ("commit -p" or "commit -i")
+    
+     - the size of the index must shrink after updating the
+       cache-tree, which implies a non-trivial deletion. Notice
+       that the included test actually has to create a 2-deep
+       hierarchy. A single level is not enough to actually cause
+       shrinkage.
+    
+    The fix is to truncate the file before writing out the
+    second index. We can do that at the caller by using
+    ftruncate(). But we shouldn't have to do that. There is no
+    other place in Git where we want to open a file and
+    overwrite bytes, making reopen_tempfile() a confusing and
+    error-prone interface. Let's pass O_TRUNC there, which gives
+    callers the same state they had after initially opening the
+    file or lock.
+    
+    It's possible that we could later add a caller that wants
+    something else (e.g., to open with O_APPEND). But this is
+    the only caller we've had in the history of the codebase.
+    Let's punt on doing anything more clever until another one
+    comes along.
+    
+    Reported-by: Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
+    Signed-off-by: Jeff King <peff@peff.net>
+    Signed-off-by: Junio C Hamano <gitster@pobox.com>
+
+commit 34bec2c458474bdc05ced34d6789ee6c9fb7f051
+Author: Alban Gruin <alban.gruin@gmail.com>
+Date:   Fri Aug 10 18:51:32 2018 +0200
+
+    sequencer: add a new function to silence a command, except if it fails
+    
+    This adds a new function, run_command_silent_on_success(), to
+    redirect the stdout and stderr of a command to a strbuf, and then to run
+    that command. This strbuf is printed only if the command fails. It is
+    functionnaly similar to output() from git-rebase.sh.
+    
+    run_git_commit() is then refactored to use of
+    run_command_silent_on_success().
+    
+    Signed-off-by: Alban Gruin <alban.gruin@gmail.com>
+    Signed-off-by: Junio C Hamano <gitster@pobox.com>
+
+commit 960786e7618942357c45e7e4c234f113e0aea9b1
+Author: Ryan Dammrose <ryandammrose@gmail.com>
+Date:   Sat Apr 21 12:10:00 2018 +0200
+
+    push: colorize errors
+    
+    This is an attempt to resolve an issue I experience with people that are
+    new to Git -- especially colleagues in a team setting -- where they miss
+    that their push to a remote location failed because the failure and
+    success both return a block of white text.
+    
+    An example is if I push something to a remote repository and then a
+    colleague attempts to push to the same remote repository and the push
+    fails because it requires them to pull first, but they don't notice
+    because a success and failure both return a block of white text. They
+    then continue about their business, thinking it has been successfully
+    pushed.
+    
+    This patch colorizes the errors and hints (in red and yellow,
+    respectively) so whenever there is a failure when pushing to a remote
+    repository that fails, it is more noticeable.
+    
+    [jes: fixed a couple bugs, added the color.{advice,push,transport}
+    settings, refactored to use want_color_stderr().]
+    
+    Signed-off-by: Ryan Dammrose ryandammrose@gmail.com
+    Signed-off-by: Johannes Schindelin <johannes.schindelin@gmx.de>
+    Signed-off-by: Junio C Hamano <gitster@pobox.com>
+
+commit 21dfc5e08fec74ded0ab4206bca0927a38feb882
+Author: Nguyễn Thái Ngọc Duy <pclouds@gmail.com>
+Date:   Thu Jan 18 16:45:10 2018 +0700
+
+    run-command.c: print program 'git' when tracing git_cmd mode
+    
+    We normally print full command line, including the program and its
+    argument. When git_cmd is set, we have a special code path to run the
+    right "git" program and child_process.argv[0] will not contain the
+    program name anymore. As a result, we print just the command
+    arguments.
+    
+    I thought it was a regression when the code was refactored and git_cmd
+    added, but apparently it's not. git_cmd mode was introduced before
+    tracing was added in 8852f5d704 (run_command(): respect GIT_TRACE -
+    2008-07-07) so it's more like an oversight in 8852f5d704.
+    
+    Fix it, print the program name "git" in git_cmd mode. It's nice to have
+    now. But it will be more important later when we start to print env
+    variables too, in shell syntax. The lack of a program name would look
+    confusing then.
+    
+    Signed-off-by: Nguyễn Thái Ngọc Duy <pclouds@gmail.com>
+    Signed-off-by: Junio C Hamano <gitster@pobox.com>
+
+commit d0aaa46fd3e53801346a4cadebf398f05d79780b
+Author: Phillip Wood <phillip.wood@dunelm.org.uk>
+Date:   Fri Nov 10 11:09:42 2017 +0000
+
+    commit: move empty message checks to libgit
+    
+    Move the functions that check for empty messages from bulitin/commit.c
+    to sequencer.c so they can be shared with other commands. The
+    functions are refactored to take an explicit cleanup mode and template
+    filename passed by the caller.
+    
+    Signed-off-by: Phillip Wood <phillip.wood@dunelm.org.uk>
+    Signed-off-by: Junio C Hamano <gitster@pobox.com>
+
+commit f18777ba6ef23c30c68d2d4799b6ba512785288f
+Author: Tom G. Christensen <tgc@jupiterrise.com>
+Date:   Fri Aug 11 18:37:33 2017 +0200
+
+    http: fix handling of missing CURLPROTO_*
+    
+    Commit aeae4db1 refactored the handling of the curl protocol
+    restriction support into a function but failed to add a version
+    check for older versions of curl that lack CURLPROTO_* support.
+    
+    Add the missing check and at the same time convert it to a feature
+    check instead of a version based check.  This is done to ensure that
+    vendor supported curl versions that have had CURLPROTO_* support
+    backported are handled correctly.
+    
+    Signed-off-by: Tom G. Christensen <tgc@jupiterrise.com>
+    Signed-off-by: Junio C Hamano <gitster@pobox.com>
+
+commit e62ba4324421279d5c9ba95494dca4b4f0e10eb1
+Author: Ævar Arnfjörð Bjarmason <avarab@gmail.com>
+Date:   Thu Jun 29 22:22:17 2017 +0000
+
+    grep: remove redundant double assignment to 0
+    
+    Stop assigning 0 to the extended_regexp_option field right after we've
+    zeroed out the entire struct with memset() just a few lines earlier.
+    
+    Unlike some of the code being refactored in subsequent commits, this
+    was always completely redundant. See the original code introduced in
+    84befcd0a4 ("grep: add a grep.patternType configuration setting",
+    2012-08-03).
+    
+    Signed-off-by: Ævar Arnfjörð Bjarmason <avarab@gmail.com>
+    Signed-off-by: Junio C Hamano <gitster@pobox.com>
+
+commit 1eab194bf06786a987497d7bc8ffcf5c0dae0e36
+Author: Nguyễn Thái Ngọc Duy <pclouds@gmail.com>
+Date:   Sun Mar 26 09:42:17 2017 +0700
+
+    files-backend: delete dead code in files_init_db()
+    
+    safe_create_dir() can do adjust_shared_perm() internally, and init-db
+    has always created 'refs' in shared mode since the beginning,
+    af6e277c5e (git-init-db: initialize shared repositories with --shared -
+    2005-12-22). So this code looks like extra adjust_shared_perm calls are
+    unnecessary.
+    
+    And they are. But let's see why there are here in the first place.
+    
+    This code was added in 6fb5acfd8f (refs: add methods to init refs db -
+    2016-09-04). From the diff alone this looks like a faithful refactored
+    code from init-db.c. But there is a subtle difference:
+    
+    Between the safe_create_dir() block and adjust_shared_perm() block in
+    the old init-db.c, we may copy/recreate directories from the repo
+    template. So it makes sense that adjust_shared_perm() is re-executed
+    then to fix potential permission screwups.
+    
+    After 6fb5acfd8f, refs dirs are created after template is copied. Nobody
+    will change directory permission again. So the extra adjust_shared_perm()
+    is redudant. Delete them.
+    
+    Signed-off-by: Nguyễn Thái Ngọc Duy <pclouds@gmail.com>
+    Signed-off-by: Junio C Hamano <gitster@pobox.com>
+
+commit 1a27409ae81120c1f2d8e6983b58a53293265491
+Author: Johannes Schindelin <Johannes.Schindelin@gmx.de>
+Date:   Mon Mar 13 21:11:12 2017 +0100
+
+    read_early_config(): really discover .git/
+    
+    Earlier, we punted and simply assumed that we are in the top-level
+    directory of the project, and that there is no .git file but a .git/
+    directory so that we can read directly from .git/config.
+    
+    However, that is not necessarily true. We may be in a subdirectory. Or
+    .git may be a gitfile. Or the environment variable GIT_DIR may be set.
+    
+    To remedy this situation, we just refactored the way
+    setup_git_directory() discovers the .git/ directory, to make it
+    reusable, and more importantly, to leave all global variables and the
+    current working directory alone.
+    
+    Let's discover the .git/ directory correctly in read_early_config() by
+    using that new function.
+    
+    This fixes 4 known breakages in t7006.
+    
+    Signed-off-by: Johannes Schindelin <johannes.schindelin@gmx.de>
+    Signed-off-by: Junio C Hamano <gitster@pobox.com>
+
+commit 40cfc95856594ddd04ae6ef3bfd041346c4854ec
+Merge: 8648eacc1d 1da045fb9d
+Author: Junio C Hamano <gitster@pobox.com>
+Date:   Tue May 17 14:38:28 2016 -0700
+
+    Merge branch 'nd/error-errno'
+    
+    The code for warning_errno/die_errno has been refactored and a new
+    error_errno() reporting helper is introduced.
+    
+    * nd/error-errno: (41 commits)
+      wrapper.c: use warning_errno()
+      vcs-svn: use error_errno()
+      upload-pack.c: use error_errno()
+      unpack-trees.c: use error_errno()
+      transport-helper.c: use error_errno()
+      sha1_file.c: use {error,die,warning}_errno()
+      server-info.c: use error_errno()
+      sequencer.c: use error_errno()
+      run-command.c: use error_errno()
+      rerere.c: use error_errno() and warning_errno()
+      reachable.c: use error_errno()
+      mailmap.c: use error_errno()
+      ident.c: use warning_errno()
+      http.c: use error_errno() and warning_errno()
+      grep.c: use error_errno()
+      gpg-interface.c: use error_errno()
+      fast-import.c: use error_errno()
+      entry.c: use error_errno()
+      editor.c: use error_errno()
+      diff-no-index.c: use error_errno()
+      ...
+
+commit 0e94242df1ba11830c5443a55decaa041fa97710
+Author: Junio C Hamano <gitster@pobox.com>
+Date:   Thu Mar 3 10:52:53 2016 -0800
+
+    index-pack: correct --keep[=<msg>]
+    
+    When 592ce208 (index-pack: use strip_suffix to avoid magic numbers,
+    2014-06-30) refactored the code to derive names of .idx and .keep
+    files from the name of .pack file, a copy-and-paste typo crept in,
+    mistakingly attempting to create and store the keep message file in
+    the .idx file we just created, instead of .keep file.
+    
+    As we create the .keep file with O_CREAT|O_EXCL, and we do so after
+    we write the .idx file, we luckily do not clobber the .idx file, but
+    because we deliberately ignored EEXIST when creating .keep file
+    (which is justifiable because only the existence of .keep file
+    matters), nobody noticed this mistake so far.
+    
+    Signed-off-by: Junio C Hamano <gitster@pobox.com>
+
+commit 26f7b5c79ace2df0475f8d04d1a5141e21615ddd
+Merge: ae2f25542f fe63c4d110
+Author: Junio C Hamano <gitster@pobox.com>
+Date:   Fri Feb 26 13:37:10 2016 -0800
+
+    Merge branch 'kn/ref-filter-atom-parsing'
+    
+    The ref-filter's format-parsing code has been refactored, in
+    preparation for "branch --format" and friends.
+    
+    * kn/ref-filter-atom-parsing:
+      ref-filter: introduce objectname_atom_parser()
+      ref-filter: introduce contents_atom_parser()
+      ref-filter: introduce remote_ref_atom_parser()
+      ref-filter: align: introduce long-form syntax
+      ref-filter: introduce align_atom_parser()
+      ref-filter: introduce parse_align_position()
+      ref-filter: introduce color_atom_parser()
+      ref-filter: introduce parsing functions for each valid atom
+      ref-filter: introduce struct used_atom
+      ref-filter: bump 'used_atom' and related code to the top
+      ref-filter: use string_list_split over strbuf_split
+
+commit 2b597f3307f2ae87e1213076db8dd59760317487
+Merge: b1cda70fff 8bf4becf0c
+Author: Junio C Hamano <gitster@pobox.com>
+Date:   Tue Dec 8 14:14:49 2015 -0800
+
+    Merge branch 'ls/test-must-fail-sigpipe'
+    
+    Fix some racy client/server tests by treating SIGPIPE the same as a
+    normal non-zero exit.
+    
+    * ls/test-must-fail-sigpipe:
+      add "ok=sigpipe" to test_must_fail and use it to fix flaky tests
+      implement test_might_fail using a refactored test_must_fail
+
+commit bbfe5302d50891233cef645b74324c01d8b004c8
+Author: Lars Schneider <larsxschneider@gmail.com>
+Date:   Fri Nov 27 10:15:13 2015 +0100
+
+    implement test_might_fail using a refactored test_must_fail
+    
+    Add an (optional) first parameter "ok=<special case>" to test_must_fail
+    and return success for "<special case>". Add "success" as
+    "<special case>" and use it to implement "test_might_fail". This removes
+    redundancies in test-lib-function.sh.
+    
+    You can pass multiple <special case> arguments divided by comma (e.g.
+    "test_must_fail ok=success,something")
+    
+    Signed-off-by: Junio C Hamano <gitster@pobox.com>
+    Signed-off-by: Lars Schneider <larsxschneider@gmail.com>
+    Signed-off-by: Ramsay Jones <ramsay@ramsayjones.plus.com>
+    Signed-off-by: Jeff King <peff@peff.net>
+
+commit 7cb5f7c44dfea798a5ad99ee5b42fdaf8de4e379
+Author: Jeff King <peff@peff.net>
+Date:   Tue Nov 17 18:22:37 2015 -0500
+
+    blame: fix object casting regression
+    
+    Commit 1b0d400 refactored the prepare_final() function so
+    that it could be reused in multiple places. Originally, the
+    loop had two outputs: a commit to stuff into sb->final, and
+    the name of the commit from the rev->pending array.
+    
+    After the refactor, that loop is put in its own function
+    with a single return value: the object_array_entry from the
+    rev->pending array. This contains both the name and the object,
+    but with one important difference: the object is the
+    _original_ object found by the revision parser, not the
+    dereferenced commit. If one feeds a tag to "git blame", we
+    end up casting the tag object to a "struct commit", which
+    causes a segfault.
+    
+    Instead, let's return the commit (properly casted) directly
+    from the function, and take the "name" as an optional
+    out-parameter. This does the right thing, and actually
+    simplifies the callers, who no longer need to cast or
+    dereference the object_array_entry themselves.
+    
+    [test case by Max Kirillov <max@max630.net>]
+    
+    Signed-off-by: Jeff King <peff@peff.net>
+
+commit ba5312da19c6fdb6c6747d479f58932aae6e900c
+Merge: 9627b0a49f 6ac617a321
+Author: Junio C Hamano <gitster@pobox.com>
+Date:   Thu Oct 29 13:59:21 2015 -0700
+
+    Merge branch 'jc/mailinfo-lib'
+    
+    The implementation of "git mailinfo" was refactored so that a
+    mailinfo() function can be directly called from inside a process.
+    
+    * jc/mailinfo-lib: (34 commits)
+      mailinfo: remove calls to exit() and die() deep in the callchain
+      mailinfo: handle charset conversion errors in the caller
+      mailinfo: libify
+      mailinfo: keep the parsed log message in a strbuf
+      mailinfo: handle_commit_msg() shouldn't be called after finding patchbreak
+      mailinfo: move content/content_top to struct mailinfo
+      mailinfo: move [ps]_hdr_data to struct mailinfo
+      mailinfo: move cmitmsg and patchfile to struct mailinfo
+      mailinfo: move charset to struct mailinfo
+      mailinfo: move transfer_encoding to struct mailinfo
+      mailinfo: move check for metainfo_charset to convert_to_utf8()
+      mailinfo: move metainfo_charset to struct mailinfo
+      mailinfo: move use_scissors and use_inbody_headers to struct mailinfo
+      mailinfo: move add_message_id and message_id to struct mailinfo
+      mailinfo: move patch_lines to struct mailinfo
+      mailinfo: move filter/header stage to struct mailinfo
+      mailinfo: move global "FILE *fin, *fout" to struct mailinfo
+      mailinfo: move keep_subject & keep_non_patch_bracket to struct mailinfo
+      mailinfo: introduce "struct mailinfo" to hold globals
+      mailinfo: move global "line" into mailinfo() function
+      ...
+
+commit f0e7f11d054b79de6e1f7bcee6e68c2f17af61bd
+Author: Jeff King <peff@peff.net>
+Date:   Thu Jun 4 08:35:42 2015 -0400
+
+    index-pack: fix truncation of off_t in comparison
+    
+    Commit c6458e6 (index-pack: kill union delta_base to save
+    memory, 2015-04-18) refactored the comparison functions used
+    in sorting and binary searching our delta list. The
+    resulting code does something like:
+    
+      int cmp_offsets(off_t a, off_t b)
+      {
+              return a - b;
+      }
+    
+    This works most of the time, but produces nonsensical
+    results when the difference between the two offsets is
+    larger than what can be stored in an "int". This can lead to
+    unresolved deltas if the packsize is larger than 2G (even on
+    64-bit systems, an int is still typically 32 bits):
+    
+      $ git clone git://github.com/mozilla/gecko-dev
+      Cloning into 'gecko-dev'...
+      remote: Counting objects: 4800161, done.
+      remote: Compressing objects: 100% (178/178), done.
+      remote: Total 4800161 (delta 88), reused 0 (delta 0), pack-reused 4799978
+      Receiving objects: 100% (4800161/4800161), 2.21 GiB | 3.26 MiB/s, done.
+      Resolving deltas:  99% (3808820/3811944), completed with 0 local objects.
+      fatal: pack has 3124 unresolved deltas
+      fatal: index-pack failed
+    
+    We can fix it by doing direct comparisons between the
+    offsets and returning constants; the callers only care about
+    the sign of the comparison, not the magnitude.
+    
+    Signed-off-by: Jeff King <peff@peff.net>
+    Signed-off-by: Junio C Hamano <gitster@pobox.com>
+
+commit b7994af0f92e6cf150544aebe3c3fc526faaf2c3
+Author: Jeff King <peff@peff.net>
+Date:   Fri Apr 17 10:52:48 2015 -0400
+
+    type_from_string_gently: make sure length matches
+    
+    When commit fe8e3b7 refactored type_from_string to allow
+    input that was not NUL-terminated, it switched to using
+    strncmp instead of strcmp. But this means we check only the
+    first "len" bytes of the strings, and ignore any remaining
+    bytes in the object_type_string. We should make sure that it
+    is also "len" bytes, or else we would accept "comm" as
+    "commit", and so forth.
+    
+    Signed-off-by: Jeff King <peff@peff.net>
+    Signed-off-by: Junio C Hamano <gitster@pobox.com>
+
+commit 8b9c2dd4dee01b5a0a9c5cfdd5a107f78edaceb7
+Author: Jeff King <peff@peff.net>
+Date:   Tue Jan 27 15:02:27 2015 -0500
+
+    dumb-http: do not pass NULL path to parse_pack_index
+    
+    Once upon a time, dumb http always fetched .idx files
+    directly into their final location, and then checked their
+    validity with parse_pack_index. This was refactored in
+    commit 750ef42 (http-fetch: Use temporary files for
+    pack-*.idx until verified, 2010-04-19), which uses the
+    following logic:
+    
+      1. If we have the idx already in place, see if it's
+         valid (using parse_pack_index). If so, use it.
+    
+      2. Otherwise, fetch the .idx to a tempfile, check
+         that, and if so move it into place.
+    
+      3. Either way, fetch the pack itself if necessary.
+    
+    However, it got step 1 wrong. We pass a NULL path parameter
+    to parse_pack_index, so an existing .idx file always looks
+    broken. Worse, we do not treat this broken .idx as an
+    opportunity to re-fetch, but instead return an error,
+    ignoring the pack entirely. This can lead to a dumb-http
+    fetch failing to retrieve the necessary objects.
+    
+    This doesn't come up much in practice, because it must be a
+    packfile that we found out about (and whose .idx we stored)
+    during an earlier dumb-http fetch, but whose packfile we
+    _didn't_ fetch. I.e., we did a partial clone of a
+    repository, didn't need some packfiles, and now a followup
+    fetch needs them.
+    
+    Discovery and tests by Charles Bailey <charles@hashpling.org>.
+    
+    Signed-off-by: Jeff King <peff@peff.net>
+    Signed-off-by: Junio C Hamano <gitster@pobox.com>
+
+commit 3759d27aca3ddd78b4b1169a767809748dc1fc3f
+Author: Jeff King <peff@peff.net>
+Date:   Tue Jan 20 17:14:48 2015 -0500
+
+    parse_color: fix return value for numeric color values 0-8
+    
+    When commit 695d95d refactored the color parsing, it missed
+    a "return 0" when parsing literal numbers 0-8 (which
+    represent basic ANSI colors), leading us to report these
+    colors as an error.
+    
+    Signed-off-by: Jeff King <peff@peff.net>
+    Signed-off-by: Junio C Hamano <gitster@pobox.com>
+
+commit a39c14af82e973ba1502888e89585b7501721ede
+Author: Jeff King <peff@peff.net>
+Date:   Wed Jan 15 03:26:33 2014 -0500
+
+    interpret_branch_name: factor out upstream handling
+    
+    This function checks a few different @{}-constructs. The
+    early part checks for and dispatches us to helpers for each
+    construct, but the code for handling @{upstream} is inline.
+    
+    Let's factor this out into its own function. This makes
+    interpret_branch_name more readable, and will make it much
+    simpler to further refactor the function in future patches.
+    
+    While we're at it, let's also break apart the refactored
+    code into a few helper functions. These will be useful if we
+    eventually implement similar @{upstream}-like constructs.
+    
+    Signed-off-by: Jeff King <peff@peff.net>
+    Signed-off-by: Junio C Hamano <gitster@pobox.com>
+
+commit f2e087395b78d5828af400072c1b621e1a373be4
+Author: Jiang Xin <worldhello.net@gmail.com>
+Date:   Mon Aug 26 15:02:48 2013 +0800
+
+    branch: report invalid tracking branch as gone
+    
+    Command "git branch -vv" will report tracking branches, but invalid
+    tracking branches are also reported. This is because the function
+    stat_tracking_info() can not distinguish invalid tracking branch
+    from other cases which it would not like to report, such as
+    there is no upstream settings at all, or nothing is changed between
+    one branch and its upstream.
+    
+    Junio suggested missing upstream should be reported [1] like:
+    
+        $ git branch -v -v
+          master    e67ac84 initial
+        * topic     3fc0f2a [topicbase: gone] topic
+    
+        $ git status
+        # On branch topic
+        # Your branch is based on 'topicbase', but the upstream is gone.
+        #   (use "git branch --unset-upstream" to fixup)
+        ...
+    
+        $ git status -b -s
+        ## topic...topicbase [gone]
+        ...
+    
+    In order to do like that, we need to distinguish these three cases
+    (i.e. no tracking, with configured but no longer valid tracking, and
+    with tracking) in function stat_tracking_info(). So the refactored
+    function stat_tracking_info() has three return values: -1 (with "gone"
+    base), 0 (no base), and 1 (with base).
+    
+    If the caller does not like to report tracking info when nothing
+    changed between the branch and its upstream, simply checks if
+    num_theirs and num_ours are both 0.
+    
+    [1]: http://thread.gmane.org/gmane.comp.version-control.git/231830/focus=232288
+    
+    Suggested-by: Junio C Hamano <gitster@pobox.com>
+    Signed-off-by: Jiang Xin <worldhello.net@gmail.com>
+    Signed-off-by: Junio C Hamano <gitster@pobox.com>
+
+commit 048b3991924a0666a2ab4f381caac8d62962de38
+Author: Richard Hubbell <richard_hubbe11@lavabit.com>
+Date:   Sun Nov 4 09:45:55 2012 -0800
+
+    gitweb.perl: fix %highlight_ext mappings
+    
+    When commit 592ea41 refactored the list of extensions for
+    syntax highlighting, it failed to take into account perl's
+    operator precedence within lists. As a result, we end up
+    creating a dictionary of one-to-one elements when the intent
+    was to map mutliple related types to one main type (e.g.,
+    bash, ksh, zsh, and sh should all map to sh since they share
+    similar syntax, but we ended up just mapping "bash" to
+    "bash" and so forth).
+    
+    This patch adds parentheses to make the mapping as the
+    original change intended. It also reorganizes the list to
+    keep mapped extensions together.
+    
+    Signed-off-by: Richard Hubbell <richard_hubbe11@lavabit.com>
+    Signed-off-by: Jeff King <peff@peff.net>
+
+commit add416a6c05b580e005726f318463698d746384d
+Author: Jeff King <peff@peff.net>
+Date:   Wed Jul 25 17:57:30 2012 -0400
+
+    checkout: don't confuse ref and object flags
+    
+    When we are leaving a detached HEAD, we do a revision traversal to
+    check whether we are orphaning any commits, marking the commit we're
+    leaving as the start of the traversal, and all existing refs as
+    uninteresting.
+    
+    Prior to commit 468224e5, we did so by calling for_each_ref, and
+    feeding each resulting refname to setup_revisions.  Commit 468224e5
+    refactored this to simply mark the pending objects, saving an extra
+    lookup.
+    
+    However, it confused the "flags" parameter to the each_ref_fn
+    clalback, which is about the flags we found while looking up the ref
+    with the object flag.  Because REF_ISSYMREF ("this ref is a symbolic
+    ref, e.g. refs/remotes/origin/HEAD") happens to be the same bit
+    pattern as SEEN ("we have picked this object up from the pending
+    list and moved it to revs.commits list"), we incorrectly reported
+    that a commit previously at the detached HEAD will become
+    unreachable if the only ref that can reach the commit happens to be
+    pointed at by a symbolic ref.
+    
+    Signed-off-by: Jeff King <peff@peff.net>
+    Signed-off-by: Junio C Hamano <gitster@pobox.com>
+
+commit 70969f775d28d7d7dc1f0688f71741f6260d442b
+Author: Thomas Badie <thomas.badie@gmail.com>
+Date:   Sun Jun 24 23:37:34 2012 +0200
+
+    git-add--interactive.perl: Remove two unused variables
+    
+    The patch 8f0bef6 refactored this script and made the variable $fh
+    unneeded in subs diff_applies and patch_update_file, but forgot to
+    remove them.
+    
+    Signed-off-by: Thomas Badie <badie@lrde.epita.fr>
+    Signed-off-by: Junio C Hamano <gitster@pobox.com>
+
+commit d577cd216e0adb9cbc726dddd1a0858b4ab4e6e3
+Author: Thomas Rast <tr@thomasrast.ch>
+Date:   Tue Dec 20 22:42:39 2011 +0100
+
+    git-sh-setup: make require_clean_work_tree part of the interface
+    
+    92c62a3 (Porcelain scripts: Rewrite cryptic "needs update" error
+    message, 2010-10-19) refactored git's own checking to a function in
+    git-sh-setup.  This is a very useful thing for script writers, so
+    document it.
+    
+    Signed-off-by: Thomas Rast <trast@student.ethz.ch>
+    Signed-off-by: Junio C Hamano <gitster@pobox.com>
+
+commit bd2c86ef00f032be925edacfc2d284ab9b6b9eab
+Author: Jeff King <peff@peff.net>
+Date:   Sat Dec 17 04:37:15 2011 -0500
+
+    make "git push -v" actually verbose
+    
+    Providing a single "-v" to "git push" currently does
+    nothing. Giving two flags ("git push -v -v") turns on the
+    first level of verbosity.
+    
+    This is caused by a regression introduced in 8afd8dc (push:
+    support multiple levels of verbosity, 2010-02-24). Before
+    the series containing 8afd8dc, the verbosity handling for
+    fetching and pushing was completely separate. Commit bde873c
+    refactored the verbosity handling out of the fetch side, and
+    then 8afd8dc converted push to use the refactored code.
+    
+    However, the fetch and push sides numbered and passed along
+    their verbosity levels differently. For both, a verbosity
+    level of "-1" meant "quiet", and "0" meant "default output".
+    But from there they differed.
+    
+    For fetch, a verbosity level of "1" indicated to the "fetch"
+    program that it should make the status table slightly more
+    verbose, showing up-to-date entries. A verbosity level of
+    "2" meant that we should pass a verbose flag to the
+    transport; in the case of fetch-pack, this displays protocol
+    debugging information.
+    
+    As a result, the refactored code in bde873c checks for
+    "verbosity >= 2", and only then passes it on to the
+    transport. From the transport code's perspective, a
+    verbosity of 0 or 1 both meant "0".
+    
+    Push, on the other hand, does not show its own status table;
+    that is always handled by the transport layer or below
+    (originally send-pack itself, but these days it is done by
+    the transport code). So a verbosity level of 1 meant that we
+    should pass the verbose flag to send-pack, so that it knows
+    we want a verbose status table. However, once 8afd8dc
+    switched it to the refactored fetch code, a verbosity level
+    of 1 was now being ignored.  Thus, you needed to
+    artificially bump the verbosity to 2 (via "-v -v") to have
+    any effect.
+    
+    We can fix this by letting the transport code know about the
+    true verbosity level (i.e., let it distinguish level 0 or
+    1).
+    
+    We then have to also make an adjustment to any transport
+    methods that assumed "verbose > 0" meant they could spew
+    lots of debugging information. Before, they could only get
+    "0" or "2", but now they will also receive "1". They need to
+    adjust their condition for turning on such spew from
+    "verbose > 0" to "verbose > 1".
+    
+    Signed-off-by: Jeff King <peff@peff.net>
+    Signed-off-by: Junio C Hamano <gitster@pobox.com>
+
+commit e5fa45c159241b609bce40fa7a8687796e4b941d
+Author: Junio C Hamano <gitster@pobox.com>
+Date:   Mon Oct 17 11:43:30 2011 -0700
+
+    resolve_gitlink_packed_ref(): fix mismerge
+    
+    2c5c66b (Merge branch 'jp/get-ref-dir-unsorted', 2011-10-10) merged a
+    topic that forked from the mainline before a new helper function
+    get_packed_refs() refactored code to read packed-refs file. The merge made
+    the call to the helper function with an incorrect argument. The parameter
+    to the function has to be a path to the submodule.
+    
+    Fix the mismerge.
+    
+    Helped-by: Mark Levedahl <mlevedahl@gmail.com>
+    Helped-by: Michael Haggerty <mhagger@alum.mit.edu>
+    Signed-off-by: Junio C Hamano <gitster@pobox.com>
+
+commit 12b1443c2cf41174311c81667022c6f3149aa542
+Author: Jakub Narębski <jnareb@gmail.com>
+Date:   Fri Apr 29 19:51:56 2011 +0200
+
+    gitweb: Restructure projects list generation
+    
+    Extract filtering out forks (which is done if 'forks' feature is
+    enabled) into filter_forks_from_projects_list subroutine, and
+    searching projects (via projects search form, or via content tags)
+    into search_projects_list subroutine.
+    
+    Both are now run _before_ displaying projects, and not while printing;
+    this allow to know upfront if there were any found projects.  Gitweb
+    now can and do print 'No such projects found' if user searches for
+    phrase which does not correspond to any project (any repository).
+    This also would allow splitting projects list into pages, if we so
+    desire.
+    
+    Filtering out forks and marking repository (project) as having forks
+    is now consolidated into one subroutine (special case of handling
+    forks in git_get_projects_list only for $projects_list being file is
+    now removed).  Forks handling is also cleaned up and simplified.
+    $pr->{'forks'} now contains un-filled list of forks; we can now also
+    detect situation where the way for having forks is prepared, but there
+    are no forks yet.
+    
+    Sorting projects got also refactored in a very straight way (just
+    moving code) into sort_projects_list subroutine.
+    
+    The interaction between forks, content tags and searching is now made
+    more explicit: searching whether by tag, or via search form turns off
+    fork filtering (gitweb searches also forks, and will show all
+    results).  If 'ctags' feature is disabled, then searching by tag is
+    too.
+    
+    The t9500 test now includes some basic test for 'forks' and 'ctags'
+    features; the t9502 includes test checking if gitweb correctly filters
+    out forks.
+    
+    Generating list of projects by scanning given directory is now also a
+    bit simplified wrt. handling filtering; it is byproduct of extracting
+    filtering forks to separate subroutine.
+    
+    While at it we now detect that there are no projects and respond with
+    "404 No projects found" also for 'project_index' and 'opml' actions.
+    
+    Helped-by: Jonathan Nieder <jrnieder@gmail.com>
+    Signed-off-by: Jakub Narebski <jnareb@gmail.com>
+    Signed-off-by: Junio C Hamano <gitster@pobox.com>
+
+commit 06796607ef557e8913f1797cca3c98ce4844c36c
+Author: Jeff King <peff@peff.net>
+Date:   Thu Feb 24 09:28:41 2011 -0500
+
+    trace: refactor to support multiple env variables
+    
+    Right now you turn all tracing off and on with GIT_TRACE. To
+    support new types of tracing without forcing the user to see
+    all of them, we will soon support turning each tracing area
+    on with GIT_TRACE_*.
+    
+    This patch lays the groundwork by providing an interface
+    which does not assume GIT_TRACE. However, we still maintain
+    the trace_printf interface so that existing callers do not
+    need to be refactored.
+    
+    Signed-off-by: Jeff King <peff@peff.net>
+    Signed-off-by: Junio C Hamano <gitster@pobox.com>
+
+commit 05bb5a2584ca0e1c87a2135a83c5573b9337d06f
+Author: Jakub Narębski <jnareb@gmail.com>
+Date:   Sat Dec 18 21:02:13 2010 +0100
+
+    gitweb: Include links to feeds in HTML header only for '200 OK' response
+    
+    To do that, generating "<link />"s to feeds were refactored into
+    print_feed_meta() subroutine, to keep nesting (indent) level in
+    git_header_html() low.  This has also the advantage of making code
+    more clear.
+    
+    Signed-off-by: Jakub Narebski <jnareb@gmail.com>
+    Signed-off-by: John 'Warthog9' Hawley <warthog9@eaglescrag.net>
+    Signed-off-by: Junio C Hamano <gitster@pobox.com>
+
+commit 6b01b67658e2905b550739f1aee56a00911ca13c
+Author: David Barr <david.barr@cordelta.com>
+Date:   Fri Nov 19 18:57:46 2010 -0600
+
+    vcs-svn: Implement Prop-delta handling
+    
+    The rules for what file is used as delta source for each file are not
+    documented in dump-load-format.txt.  Luckily, the Apache Software
+    Foundation repository has rich enough examples to figure out most of
+    the rules:
+    
+    Node-action: replace implies the empty property set and empty text as
+    preimage for deltas.  Otherwise, if a copyfrom source is given, that
+    node is the preimage for deltas.  Lastly, if none of the above applies
+    and the node path exists in the current revision, then that version
+    forms the basis.
+    
+    [jn: refactored, with tests]
+    
+    Signed-off-by: David Barr <david.barr@cordelta.com>
+    Signed-off-by: Jonathan Nieder <jrnieder@gmail.com>
+    Signed-off-by: Junio C Hamano <gitster@pobox.com>
+
+commit 3d5854e765dedfaf2a942e8fa1e950a40f9dcee3
+Author: Michael J Gruber <git@grubix.eu>
+Date:   Wed Nov 10 12:17:30 2010 +0100
+
+    tag: recognize rfc1991 signatures
+    
+    We have always been creating rfc1991 signatures for users with "rfc1991"
+    in their gpg config but failed to recognize them (tag -l -n largenumber)
+    and verify them (tag -v, verify-tag).
+    
+    Make good use of the refactored signature detection and let us recognize
+    and verify those signatures also.
+    
+    Signed-off-by: Michael J Gruber <git@drmicha.warpmail.net>
+    Signed-off-by: Junio C Hamano <gitster@pobox.com>
+
+commit 2102440c17f990fcb5c9269459c39c6312e80d1c
+Author: Jonathan Nieder <jrnieder@gmail.com>
+Date:   Tue Aug 17 18:00:34 2010 -0500
+
+    fmt-merge-msg -m to override merge title
+    
+    Since v1.7.1.1~23^2 (merge: --log appends shortlog to message if
+    specified, 2010-05-11), the fmt-merge-msg backend supports custom text
+    to override the merge title "Merge <foo> into <bar>".
+    
+    Expose this functionality for scripted callers.  Example:
+    
+     git fmt-merge-msg --log -m \
+            "$(printf '%s\n' \
+                "Merge branch 'api-cleanup' into feature" \
+                '' \
+                'This is to use a few functions refactored for this purpose.'
+            )" <.git/FETCH_HEAD
+    
+    Cc: Tay Ray Chuan <rctay89@gmail.com>
+    Signed-off-by: Jonathan Nieder <jrnieder@gmail.com>
+    Signed-off-by: Junio C Hamano <gitster@pobox.com>
+
+commit 29e5573d1ef67c92314c39e55d26504fee119c04
+Author: Giuseppe Bilotta <giuseppe.bilotta@gmail.com>
+Date:   Sat Jan 23 11:03:35 2010 +0100
+
+    git-gui: handle bare repos correctly
+    
+    Refactor checking for a bare repository into its own proc, that relies
+    on git rev-parse --is-bare-repository if possible. For older versions of
+    git we fall back to a logic such that the repository is considered bare
+    if:
+     * either the core.bare setting is true
+     * or the worktree is not set and the directory name ends with .git
+    The error message for the case of an unhandled bare repository is also
+    updated to reflect the fact that the problem is not the funny name but
+    the bareness.
+    
+    The new refactored proc is also used to disable the menu entry to
+    explore the working copy, and to skip changing to the worktree before
+    the gitk invocation.
+    
+    Signed-off-by: Giuseppe Bilotta <giuseppe.bilotta@gmail.com>
+    Signed-off-by: Shawn O. Pearce <spearce@spearce.org>
+
+commit 27d6b08536838fff0e3568a57cc622ca1c39bf01
+Author: Junio C Hamano <gitster@pobox.com>
+Date:   Fri Dec 25 14:34:53 2009 -0800
+
+    rerere: refactor rerere logic to make it independent from I/O
+    
+    This splits the handle_file() function into in-core part and I/O
+    parts of the logic to create the preimage, so that we can compute
+    the conflict identifier without having to use temporary files.
+    
+    Earlier, I thought the output from handle_file() should also be
+    refactored, but it is always about writing preimage (or thisimage)
+    that is used for later three-way merge, so it is saner to keep it
+    to always write to FILE *.
+    
+    Signed-off-by: Junio C Hamano <gitster@pobox.com>
+
+commit 395de250d9d9762b8ac1ce98b297d60d0b5bd643
+Author: Matthieu Moy <git@matthieu-moy.fr>
+Date:   Tue Nov 17 18:24:25 2009 +0100
+
+    Expand ~ and ~user in core.excludesfile, commit.template
+    
+    These config variables are parsed to substitute ~ and ~user with getpw
+    entries.
+    
+    user_path() refactored into new function expand_user_path(), to allow
+    dynamically allocating the return buffer.
+    
+    Original patch by Karl Chen, modified by Matthieu Moy, and further
+    amended by Junio C Hamano.
+    
+    Signed-off-by: Karl Chen <quarl@quarl.org>
+    Signed-off-by: Matthieu Moy <Matthieu.Moy@imag.fr>
+    Signed-off-by: Junio C Hamano <gitster@pobox.com>
+
+commit 8f8f5476cd6542387d435c242752404cf144005f
+Author: Thomas Rast <tr@thomasrast.ch>
+Date:   Mon Oct 19 17:48:10 2009 +0200
+
+    Introduce new pretty formats %g[sdD] for reflog information
+    
+    Add three new --pretty=format escapes:
+    
+      %gD  long  reflog descriptor (e.g. refs/stash@{0})
+      %gd  short reflog descriptor (e.g. stash@{0})
+      %gs  reflog message
+    
+    This is achieved by passing down the reflog info, if any, inside the
+    pretty_print_context struct.
+    
+    We use the newly refactored get_reflog_selector(), and give it some
+    extra functionality to extract a shortened ref.  The shortening is
+    cached inside the commit_reflogs struct; the only allocation of it
+    happens in read_complete_reflog(), where it is initialised to 0.  Also
+    add another helper get_reflog_message() for the message extraction.
+    
+    Note that the --format="%h %gD: %gs" tests may not work in real
+    repositories, as the --pretty formatter doesn't know to leave away the
+    ": " on the last commit in an incomplete (because git-gc removed the
+    old part) reflog.  This equivalence is nevertheless the main goal of
+    this patch.
+    
+    Thanks to Jeff King for reviews, the %gd testcase and documentation.
+    
+    Signed-off-by: Thomas Rast <trast@student.ethz.ch>
+    Signed-off-by: Junio C Hamano <gitster@pobox.com>
+
+commit 6957eb9a39cc765862e125edeef0dd70f359cff1
+Author: Junio C Hamano <gitster@pobox.com>
+Date:   Mon Sep 14 18:44:01 2009 -0700
+
+    diff.c: shuffling code around
+    
+    Move function, type, and structure definitions for fill_mmfile(),
+    count_trailing_blank(), check_blank_at_eof(), emit_line(),
+    new_blank_line_at_eof(), emit_add_line(), sane_truncate_fn, and
+    emit_callback up in the file, so that they can be refactored into helper
+    functions and reused by codepath for emitting rewrite patches.
+    
+    This only moves the lines around to make the next two patches easier to
+    read.
+    
+    Signed-off-by: Junio C Hamano <gitster@pobox.com>
+
+commit 5424bc557fc6414660830b470dd45774b8f5f281
+Author: Tay Ray Chuan <rctay89@gmail.com>
+Date:   Sat Jun 6 16:44:02 2009 +0800
+
+    http*: add helper methods for fetching objects (loose)
+    
+    The code handling the fetching of loose objects in http-push.c and
+    http-walker.c have been refactored into new methods and a new struct
+    (object_http_request) in http.c. They are not meant to be invoked
+    elsewhere.
+    
+    The new methods in http.c are
+     - new_http_object_request
+     - process_http_object_request
+     - finish_http_object_request
+     - abort_http_object_request
+     - release_http_object_request
+    
+    and the new struct is http_object_request.
+    
+    RANGER_HEADER_SIZE and no_pragma_header is no longer made available
+    outside of http.c, since after the above changes, there are no other
+    instances of usage outside of http.c.
+    
+    Remove members of the transfer_request struct in http-push.c and
+    http-walker.c, including filename, real_sha1 and zret, as they are used
+    no longer used.
+    
+    Move the methods append_remote_object_url() and get_remote_object_url()
+    from http-push.c to http.c. Additionally, get_remote_object_url() is no
+    longer defined only when USE_CURL_MULTI is defined, since
+    non-USE_CURL_MULTI code in http.c uses it (namely, in
+    new_http_object_request()).
+    
+    Refactor code from http-push.c::start_fetch_loose() and
+    http-walker.c::start_object_fetch_request() that deals with the details
+    of coming up with the filename to store the retrieved object, resuming
+    a previously aborted request, and making a new curl request, into a new
+    function, new_http_object_request().
+    
+    Refactor code from http-walker.c::process_object_request() into the
+    function, process_http_object_request().
+    
+    Refactor code from http-push.c::finish_request() and
+    http-walker.c::finish_object_request() into a new function,
+    finish_http_object_request(). It returns the result of the
+    move_temp_to_file() invocation.
+    
+    Add a function, release_http_object_request(), which cleans up object
+    request data. http-push.c and http-walker.c invoke this function
+    separately; http-push.c::release_request() and
+    http-walker.c::release_object_request() do not invoke this function.
+    
+    Add a function, abort_http_object_request(), which unlink()s the object
+    file and invokes release_http_object_request(). Update
+    http-walker.c::abort_object_request() to use this.
+    
+    Signed-off-by: Tay Ray Chuan <rctay89@gmail.com>
+    Signed-off-by: Junio C Hamano <gitster@pobox.com>
+
+commit 2264dfa5c4f11e2b0e2740072208186bee361afd
+Author: Tay Ray Chuan <rctay89@gmail.com>
+Date:   Sat Jun 6 16:44:01 2009 +0800
+
+    http*: add helper methods for fetching packs
+    
+    The code handling the fetching of packs in http-push.c and
+    http-walker.c have been refactored into new methods and a new struct
+    (http_pack_request) in http.c. They are not meant to be invoked
+    elsewhere.
+    
+    The new methods in http.c are
+     - new_http_pack_request
+     - finish_http_pack_request
+     - release_http_pack_request
+    
+    and the new struct is http_pack_request.
+    
+    Add a function, new_http_pack_request(), that deals with the details of
+    coming up with the filename to store the retrieved packfile, resuming a
+    previously aborted request, and making a new curl request. Update
+    http-push.c::start_fetch_packed() and http-walker.c::fetch_pack() to
+    use this.
+    
+    Add a function, finish_http_pack_request(), that deals with renaming
+    the pack, advancing the pack list, and installing the pack. Update
+    http-push.c::finish_request() and http-walker.c::fetch_pack to use
+    this.
+    
+    Update release_request() in http-push.c and http-walker.c to invoke
+    release_http_pack_request() to clean up pack request helper data.
+    
+    The local_stream member of the transfer_request struct in http-push.c
+    has been removed, as the packfile pointer will be managed in the struct
+    http_pack_request.
+    
+    Signed-off-by: Tay Ray Chuan <rctay89@gmail.com>
+    Signed-off-by: Junio C Hamano <gitster@pobox.com>
+
+commit 4f66250df641362f381faae2aec439850a5a6e41
+Author: Tay Ray Chuan <rctay89@gmail.com>
+Date:   Sat Jun 6 16:43:27 2009 +0800
+
+    http-push: send out fetch requests on queue
+    
+    Previously, requests for remote files were simply added to the queue
+    (pointed to by request_queue_head) and no transfer actually takes
+    place (the fill function add_fill_function() is not added until line
+    2441), even though code that followed may rely on these remote files to
+    be present (eg. the setup_revisions invocation).
+    
+    The code that sends out the requests on the request queue is refactored
+    into the method run_request_queue.
+    
+    After the get_dav_remote_heads invocation (ie. after fetch requests are
+    added to the queue), the requests on the queue are sent out through an
+    invocation to run_request_queue.
+    
+    This invocation to run_request_queue entails adding a fill function
+    before pushing checks take place, which may lead to accidental,
+    unwanted pushes previously.
+    
+    The flag is_running_queue is introduced to prevent this from occurring.
+    fill_active_slot is made to check the flag is_running_queue before
+    the sending of the requests proceeds.
+    
+    Signed-off-by: Tay Ray Chuan <rctay89@gmail.com>
+    Signed-off-by: Junio C Hamano <gitster@pobox.com>
+
+commit 3b3637c3f1d752e6e6d559f30cc53bbec18537ef
+Author: Jay Soffian <jaysoffian@gmail.com>
+Date:   Tue Mar 31 12:22:13 2009 -0400
+
+    send-email: correct two tests which were going interactive
+    
+    Commit c18f75a (send-email: add tests for refactored prompting, 2009-03-28)
+    added two tests which went interactive under the dash shell.
+    
+    This patch corrects the issue, reported by Björn Steinbrink.
+    
+    Signed-off-by: Jay Soffian <jaysoffian@gmail.com>
+    Signed-off-by: Junio C Hamano <gitster@pobox.com>
+
+commit c18f75a1e96ff0f028edf94effd10cf56d892f22
+Author: Jay Soffian <jaysoffian@gmail.com>
+Date:   Sat Mar 28 21:39:11 2009 -0400
+
+    send-email: add tests for refactored prompting
+    
+    Signed-off-by: Jay Soffian <jaysoffian@gmail.com>
+    Signed-off-by: Junio C Hamano <gitster@pobox.com>
+
+commit a2fab531bbb00ff64335906e22854365be2eb5c7
+Author: Junio C Hamano <gitster@pobox.com>
+Date:   Sat Mar 21 14:35:51 2009 -0700
+
+    strbuf_check_branch_ref(): a helper to check a refname for a branch
+    
+    This allows a common calling sequence
+    
+            strbuf_branchname(&ref, name);
+            strbuf_splice(&ref, 0, 0, "refs/heads/", 11);
+            if (check_ref_format(ref.buf))
+                    die(...);
+    
+    to be refactored into
+    
+            if (strbuf_check_branch_ref(&ref, name))
+                    die(...);
+    
+    Signed-off-by: Junio C Hamano <gitster@pobox.com>
+
+commit aab3b9a1aa3b7d082088ab014480b5d81c437624
+Author: Junio C Hamano <gitster@pobox.com>
+Date:   Thu Mar 12 00:02:12 2009 -0700
+
+    read-tree A B C: do not create a bogus index and do not segfault
+    
+    "git read-tree A B C..." without the "-m" (merge) option is a way to read
+    these trees on top of each other to get an overlay of them.
+    
+    An ancient commit ee6566e (Rewrite read-tree, 2005-09-05) passed the
+    ADD_CACHE_SKIP_DFCHECK flag when calling add_index_entry() to add the
+    paths obtained from these trees to the index, but it is an incorrect use
+    of the flag.  The flag is meant to be used by callers who know the
+    addition of the entry does not introduce a D/F conflict to the index in
+    order to avoid the overhead of checking.
+    
+    This bug resulted in a bogus index that records both "x" and "x/z" as a
+    blob after reading three trees that have paths ("x"), ("x", "y"), and
+    ("x/z", "y") respectively.  34110cd (Make 'unpack_trees()' have a separate
+    source and destination index, 2008-03-06) refactored the callsites of
+    add_index_entry() incorrectly and added more codepaths that use this flag
+    when it shouldn't be used.
+    
+    Also, 0190457 (Move 'unpack_trees()' over to 'traverse_trees()' interface,
+    2008-03-05) introduced a bug to call add_index_entry() for the tree that
+    does not have the path in it, passing NULL as a cache entry.  This caused
+    reading multiple trees, one of which has path "x" but another doesn't, to
+    segfault.
+    
+    Signed-off-by: Junio C Hamano <gitster@pobox.com>
+
+commit f10d5b064ae5c9bcd6e353211f128f5c4072ed4f
+Author: Alexander Gavrilov <angavrilov@gmail.com>
+Date:   Fri Oct 3 11:36:53 2008 +0400
+
+    git-gui: Add a search command to the blame viewer.
+    
+    One of the largest deficiencies in the blame viewer at
+    the moment is the impossibility to search for a text
+    string. This commit fixes it by adding a Firefox-like
+    search panel to the viewer.
+    
+    The panel can be shown by pressing F7 or clicking a
+    menu entry, and is hidden by pressing Esc. Find Next
+    is available through the F3 key.
+    
+    Implementation is based on the gitk code, but heavily
+    refactored. It now also supports case-insensitive
+    searches, and uses the text box background color to
+    signal success or failure of the search.
+    
+    Signed-off-by: Alexander Gavrilov <angavrilov@gmail.com>
+    Signed-off-by: Shawn O. Pearce <spearce@spearce.org>
+
+commit 6eb1b437933e075bd84c5cdcf5de95ed4db4820f
+Author: Miklos Vajna <vmiklos@frugalware.org>
+Date:   Tue Sep 2 14:11:15 2008 -0700
+
+    cherry-pick/revert: make direct internal call to merge_tree()
+    
+    Refactored merge-recursive interface may still not be ideal but it already
+    allows us to make a direct call to merge_tree().
+    
+    One regression is that the status message is lost as there is no way to
+    flush them from outside the refactored library code yet.
+    
+    [jc: initial version by Miklos, with moderate amount of fixup by me]
+    
+    Signed-off-by: Junio C Hamano <gitster@pobox.com>
+
+commit 041aee31be378b3b38e3a0913b29970a7f78873b
+Author: Junio C Hamano <gitster@pobox.com>
+Date:   Mon Jul 21 01:24:17 2008 -0700
+
+    builtin-add.c: restructure the code for maintainability
+    
+    A private function add_files_to_cache() in builtin-add.c was borrowed by
+    checkout and commit re-implementors without getting properly refactored to
+    more library-ish place.  This does the refactoring.
+    
+    Signed-off-by: Junio C Hamano <gitster@pobox.com>
+
+commit 3562198b7da7ef6597af27b3a7fcaeee41608999
+Author: Jakub Narębski <jnareb@gmail.com>
+Date:   Sun Apr 20 22:09:48 2008 +0200
+
+    gitweb: Use feed link according to current view
+    
+    Michael G. Noll said in comments to the "Switching my code repository from
+    Subversion (SVN) to git" article (http://tinyurl.com/37v67l) in his "My
+    digital moleskine" blog, that one of the things he is missing in gitweb
+    from SVN::Web is an RSS feed with news/information of the current view
+    (including RSS feed for single file or directory).
+    
+    This is not exactly true, as since refactoring feed generation in af6feeb
+    (gitweb: Refactor feed generation, make output prettier, add Atom feed,
+    2006-11-19), gitweb can generate feeds (RSS or Atom) for history of a
+    given branch, history limited to a given directory, or history of a given
+    file.  Nevertheless this required handcrafting the URL to get wanted RSS
+    feed.
+    
+    This commit makes gitweb select feed links in the HTML header and in
+    page footer depending on current view (action).  It is more elaborate,
+    and I guess more correct, than simple patch adding $hash ('h')
+    parameter to *all* URLs, including feed links, by Jean-Baptiste Quenot
+    
+      Subject: [PATCH] gitweb: Add hash parameter in feed URL when a hash
+               is specified in the current request
+      Message-ID: <ae63f8b50803211138y6355fd11pa64cda50a1f53011@mail.gmail.com>
+    
+    If $hash ('h') or $hash_base ('hb') parameter is a branch name
+    (i.e. it starts with 'refs/heads/'; all generated URLs use this form
+    to discriminate between tags and heads), it is used in feed URLs; if
+    $file_name ('f') is defined, it is used in feed URLs.  Feed title is
+    set according to the kind of web feed: it is either 'log' for generic
+    feed, 'log of <branch>', 'history of <filename>' for generic history
+    (using implicit or explicit HEAD, i.e. current branch) or 'history of
+    <filename> on <branch>'.
+    
+    There are special cases: 'heads' and 'forks' views should use OPML
+    providing list of available feeds; 'tags' probably also should use
+    OPML; there is no web feed equivalent to 'search' view.  Currently all
+    those cases fallback to (show) default feed.  Such feed link uses
+    "generic" class, and is shown in slightly lighter color for
+    distinction.
+    
+    Currently feed can have but one starting point, and does not support
+    negative (exclude) commit arguments.  Therefore for now for *diff
+    views it is chosen that feed follow the "to" part: to-name, to-commit
+    for 'blobdiff', 'treediff' and 'commitdiff' views.
+    
+    Generating parameters for href() for feed link was separated
+    (refactored) into get_feed_info() subroutine.
+    
+    Signed-off-by: Jakub Narebski <jnareb@gmail.com>
+    Signed-off-by: Junio C Hamano <gitster@pobox.com>
+
+commit 85af7929ee125385c2771fa4eaccfa2f29dc63c9
+Author: Junio C Hamano <gitster@pobox.com>
+Date:   Wed Apr 2 22:17:53 2008 -0700
+
+    git-blame --reverse
+    
+    This new option allows "git blame" to read an old version of the file, and
+    up to which commit each line survived (i.e. their children rewrote the
+    line out of the contents).  The previous revision machinery update to
+    decorate each commit with its children was leading to this change.  When
+    the --reverse option is given, we read the old version and pass blame to
+    the children of the current suspect, instead of the usual order of
+    starting from the latest and passing blame to parents.
+    
+    The standard yardstick of "blame" in git.git history is "rev-list.c" which
+    was refactored heavily in its existence.  For example:
+    
+        git blame -C -C -w --reverse 9de48752..master -- rev-list.c
+    
+    begins like this:
+    
+    6c41b801 builtin-rev-list.c (JC Hamano   2008-04-02  1) #include "cache...
+    6c41b801 builtin-rev-list.c (JC Hamano   2008-04-02  2) #include "commi...
+    6c41b801 builtin-rev-list.c (JC Hamano   2008-04-02  3) #include "tree....
+    6c41b801 builtin-rev-list.c (JC Hamano   2008-04-02  4) #include "blob....
+    213523f4 rev-list.c         (JC Hamano   2006-03-01  5) #include "epoch...
+    6c41b801 builtin-rev-list.c (JC Hamano   2008-04-02  6)
+    ab57c8dd rev-list.c         (JC Hamano   2006-02-24  7) #define SEEN
+    ab57c8dd rev-list.c         (JC Hamano   2006-02-24  8) #define INTERES...
+    213523f4 rev-list.c         (JC Hamano   2006-03-01  9) #define COUNTED...
+    7e21c29b rev-list.c         (LTorvalds   2005-07-06 10) #define SHOWN  ...
+    6c41b801 builtin-rev-list.c (JC Hamano   2008-04-02 11)
+    6c41b801 builtin-rev-list.c (JC Hamano   2008-04-02 12) static const ch...
+    b1349229 rev-list.c         (LTorvalds   2005-07-26 13)    "usage: git-...
+    
+    This reveals that the original first four lines survived until now in
+    builtin-rev-list.c , inclusion of "epoch.h" was removed after 213523f4
+    while the contents was still in rev-list.c.
+    
+    This mode probably needs more tweaking so that the commit that removed the
+    line (i.e. the children of the commits listed in the above sample output)
+    is shown instead to be useful, but then there is a little matter of which
+    child of a fork point to show.
+    
+    For now, you can find the diff that rewrote the fifth line above by doing:
+    
+        $ git log --children 213523f4^..
+    
+    to find its child, which is 1025fe5 (Merge branch 'lt/rev-list' into next,
+    2006-03-01), and then look at that child with:
+    
+        $ git show 1025fe5
+    
+    Signed-off-by: Junio C Hamano <gitster@pobox.com>
+
+commit ea5105a5e3c6629ee64b499ea918c2b80882fc22
+Author: Christian Couder <chriscool@tuxfamily.org>
+Date:   Sat Feb 16 06:00:24 2008 +0100
+
+    config: add 'git_config_string' to refactor string config variables.
+    
+    In many places we just check if a value from the config file is not
+    NULL, then we duplicate it and return 0. This patch introduces the new
+    'git_config_string' function to do that.
+    
+    This function is also used to refactor some code in 'config.c'.
+    Refactoring other files is left for other patches.
+    
+    Also not all the code in "config.c" is refactored, because the function
+    takes a "const char **" as its first parameter, but in many places a
+    "char *" is used instead of a "const char *". (And C does not allow
+    using a "char **" instead of a "const char **" without a warning.)
+    
+    Signed-off-by: Christian Couder <chriscool@tuxfamily.org>
+    Signed-off-by: Junio C Hamano <gitster@pobox.com>
+
+commit f64fe7b48104c0da3fa2b9f3d927a7a7fbb0d8ea
+Merge: 12db334e75 b468f0ce48
+Author: Junio C Hamano <gitster@pobox.com>
+Date:   Sun Nov 25 08:46:29 2007 -0800
+
+    Merge branch 'kh/commit' into wc/add-i
+    
+    This is to use a few functions refactored to use in the built-in
+    commit series.
+    
+    * kh/commit: (28 commits)
+      Add a few more tests for git-commit
+      builtin-commit: Include the diff in the commit message when verbose.
+      builtin-commit: fix partial-commit support
+      Fix add_files_to_cache() to take pathspec, not user specified list of files
+      Export three helper functions from ls-files
+      builtin-commit: run commit-msg hook with correct message file
+      builtin-commit: do not color status output shown in the message template
+      file_exists(): dangling symlinks do exist
+      Replace "runstatus" with "status" in the tests
+      t7501-commit: Add test for git commit <file> with dirty index.
+      builtin-commit: Clean up an unused variable and a debug fprintf().
+      Call refresh_cache() when updating the user index for --only commits.
+      builtin-commit: Add newline when showing which commit was created
+      builtin-commit: resurrect behavior for multiple -m options
+      builtin-commit --s: add a newline if the last line was not a S-o-b
+      builtin-commit: fix --signoff
+      git status: show relative paths when run in a subdirectory
+      builtin-commit: Refresh cache after adding files.
+      builtin-commit: fix reflog message generation
+      launch_editor(): read the file, even when EDITOR=:
+      ...
+
+commit 24ccd8b88ee578d8ea1d2a9a7be9ec4cf225fe73
+Author: Frederick Akalin <akalin@akalin.cx>
+Date:   Fri Oct 5 00:20:49 2007 -0700
+
+    gtksourceview2 support for gitview
+    
+    Added support for gtksourceview2 module (pygtksourceview 1.90.x) in
+    gitview.  Also refactored code that creates the source buffer and view.
+    
+    Signed-off-by: Frederick Akalin <akalin@akalin.cx>
+    Signed-off-by: Lars Hjemli <hjemli@gmail.com>
+    Signed-off-by: Shawn O. Pearce <spearce@spearce.org>
+
+commit d56651c0ef1c81c1d0509ea4464451d5724e4036
+Author: Shawn O. Pearce <spearce@spearce.org>
+Date:   Sun Aug 19 22:33:43 2007 -0400
+
+    Don't allow combination of -g and --reverse as it doesn't work
+    
+    The --walk-reflogs logic and the --reverse logic are completely
+    incompatible with one another.  Attempting to use both at the same
+    time leads to confusing results that sometimes violates the user's
+    formatting options or ignores the user's request to see the reflog
+    message and timestamp.
+    
+    Unfortunately the implementation of both of these features is glued
+    onto the side of the revision walking machinary in such a way that
+    they are probably not going to be easy to make them compatible with
+    each other.  Rather than offering the user confusing results we are
+    better off bailing out with an error message until such a time as
+    the implementations can be refactored to be compatible.
+    
+    Signed-off-by: Shawn O. Pearce <spearce@spearce.org>
+    Signed-off-by: Junio C Hamano <gitster@pobox.com>
+
+commit 4d87b9c5db2590f7616fedfc0a538fc78f528e14
+Author: Johannes Schindelin <Johannes.Schindelin@gmx.de>
+Date:   Fri Jul 20 13:06:09 2007 +0100
+
+    launch_editor(): Heed GIT_EDITOR and core.editor settings
+    
+    In the commit 'Add GIT_EDITOR environment and core.editor
+    configuration variables', this was done for the shell scripts.
+    Port it over to builtin-tag's version of launch_editor(), which
+    is just about to be refactored into editor.c.
+    
+    Signed-off-by: Johannes Schindelin <johannes.schindelin@gmx.de>
+    Signed-off-by: Junio C Hamano <gitster@pobox.com>
+
+commit b1fa2bfff36933f94dada476ba5b3d3cb894b723
+Author: Shawn O. Pearce <spearce@spearce.org>
+Date:   Tue Jul 3 22:57:18 2007 -0400
+
+    git-gui: Abstract the revision picker into a mega widget
+    
+    This rather large change pulls the "Starting Revision" part of the
+    new branch dialog into a mega widget that we can use anytime we
+    need to select a commit SHA-1.  To make use of the mega widget I
+    have also refactored the branch dialog to use the class system,
+    much like the delete remote branch dialog already does.
+    
+    Signed-off-by: Shawn O. Pearce <spearce@spearce.org>
+
+commit 19e283f5c25b64a55fca099342f9bebddef4e17e
+Author: Shawn O. Pearce <spearce@spearce.org>
+Date:   Sun Jan 21 15:38:09 2007 -0500
+
+    git-gui: Don't offer tracking branches if none exist.
+    
+    I refactored the common code related to tracking branch listing into
+    a new procedure all_tracking_branches.  This saves a few lines and
+    should make the create and delete dialogs easier to maintain.
+    
+    We now don't offer a radio button to create from a tracking branch
+    or merge-check a tracking branch if there are no tracking branches
+    known to git-gui.  This prevents us from creating an empty option
+    list and letting the user try to shoot themselves in the foot by
+    asking us to work against an empty initial revision.
+    
+    Signed-off-by: Shawn O. Pearce <spearce@spearce.org>
+
+commit fec4a78590229aab648e37195a071e3aae02bfe0
+Author: Shawn O. Pearce <spearce@spearce.org>
+Date:   Sun Jan 21 13:12:02 2007 -0500
+
+    git-gui: Improve diff --cc viewing for unmerged files.
+    
+    Now that we are using 'git diff' to display unmerged working directory
+    files we are getting 'diff --cc' output rather than 'diff --combined'
+    output.  Further the markers in the first two columns actually make
+    sense here, we shouldn't attempt to rewrite them to something else.
+    
+    I've added 'diff --cc *' to the skip list in our diff viewer, as that
+    particular line is not very interesting to display.
+    
+    I've completely refactored how we perform detection of the state of a
+    line during diff parsing; we now report an error message if we don't
+    understand the particular state of any given line.  This way we know
+    if we aren't tagging something we maybe should have tagged in the UI.
+    
+    I've also added special display of the standard conflict hunk markers
+    (<<<<<<<, =======, >>>>>>>).  These are formatted without a patch op
+    as the patch op is always '+' or '++' (meaning the line has been added
+    relative to the committed state) and are displayed in orange bold text,
+    sort of like the @@ or @@@ marker line is at the start of each hunk.
+    
+    In a 3 way merge diff hunks which came from our HEAD are shown with a
+    azure2 background, and hunks which came from the incoming MERGE_HEAD
+    are displayed with a 'light goldenrod yellow' background.  This makes
+    the two different hunks clearly visible within the file.  Hunks which
+    are ++ or -- (added or deleted relative to both parents) are shown
+    without any background at all.
+    
+    Signed-off-by: Shawn O. Pearce <spearce@spearce.org>
+
+commit 41bdcda37376a5faa63028f01260890723c3fcfa
+Author: Shawn O. Pearce <spearce@spearce.org>
+Date:   Sat Jan 20 20:00:07 2007 -0500
+
+    git-gui: Modified makefile to embed version into git-gui script.
+    
+    We want to embed the version of git-gui directly into the script file,
+    so that we can display it properly in the about dialog.  Consequently
+    I've refactored the Makefile process to act like the one in core git.git
+    with regards to shell scripts, allowing git-gui to be constructed by a
+    sed replacement performed on git-gui.sh.
+    
+    Signed-off-by: Shawn O. Pearce <spearce@spearce.org>
+
+commit 9bc879c1ced505089e2a1e420d32599bb15b35b5
+Author: Shawn O. Pearce <spearce@spearce.org>
+Date:   Sat Dec 23 02:34:01 2006 -0500
+
+    Refactor how we open pack files to prepare for multiple windows.
+    
+    To efficiently support mmaping of multiple regions of the same pack
+    file we want to keep the pack's file descriptor open while we are
+    actively working with that pack.  So we are now keeping that file
+    descriptor in packed_git.pack_fd and closing it only after we unmap
+    the last window.
+    
+    This is going to increase the number of file descriptors that are
+    in use at once, however that will be bounded by the total number of
+    pack files present and therefore should not be very high.  It is
+    a small tradeoff which we may need to revisit after some testing
+    can be done on various repositories and systems.
+    
+    For code clarity we also want to seperate out the implementation
+    of how we open a pack file from the implementation which locates
+    a suitable window (or makes a new one) from the given pack file.
+    Since this is a rather large delta I'm taking advantage of doing
+    it now, in a fairly isolated change.
+    
+    When we open a pack file we need to examine the header and trailer
+    without having a mmap in place, as we may only need to mmap
+    the middle section of this particular pack.  Consequently the
+    verification code has been refactored to make use of the new
+    read_or_die function.
+    
+    Signed-off-by: Shawn O. Pearce <spearce@spearce.org>
+    Signed-off-by: Junio C Hamano <junkio@cox.net>
+
+commit 4adffc7b54e8c5d8fc7510007dd9b8235a67430f
+Author: Junio C Hamano <gitster@pobox.com>
+Date:   Sat Sep 16 11:06:02 2006 -0700
+
+    Add ftp:// protocol support for git-http-fetch
+    
+    Based on Sasha Khapyorsky's patch but adjusted to the refactored
+    "missing target" detection code.
+    
+    It might have been better if the program were called
+    git-url-fetch but it is too late now ;-).
+    
+    Signed-off-by: Junio C Hamano <junkio@cox.net>
+
+commit 23d6d112c004d4242f9dbd8161f79ccdeb47bde8
+Author: Junio C Hamano <gitster@pobox.com>
+Date:   Sun Sep 10 03:33:34 2006 -0700
+
+    Add sideband status report to git-archive protocol
+    
+    Using the refactored sideband code from existing upload-pack protocol,
+    this lets the error condition and status output sent from the remote
+    process to be shown locally.
+    
+    Signed-off-by: Junio C Hamano <junkio@cox.net>
+
+commit 44c10841ea3edeef47cc6be0fdba5058344e2e95
+Author: Shawn O. Pearce <spearce@spearce.org>
+Date:   Mon Aug 21 03:10:36 2006 -0400
+
+    Remove unnecessary forward declaration of unpack_entry.
+    
+    This declaration probably used to be necessary but the code has
+    been refactored since to use unpack_entry_gently instead.
+    
+    Signed-off-by: Shawn O. Pearce <spearce@spearce.org>
+    Signed-off-by: Junio C Hamano <junkio@cox.net>
+
+commit b18f9bf462cd37bc19368cb7d5c539e019d8fd67
+Author: Jakub Narębski <jnareb@gmail.com>
+Date:   Sun Jul 30 14:59:57 2006 +0200
+
+    gitweb: Add git_page_nav for later use
+    
+    Adds git_page_nav subroutine to factor out the generation of the
+    navigation bar.  Based on Sven Verdoolaege code
+    
+      Message-Id: <20050618113121.GA13122@pc117b.liacs.nl>
+      http://marc.theaimsgroup.com/?l=git&m=111909432415478&w=2
+    
+    I tried for the refactored navbar generate the same result.
+    
+    Signed-off-by: Jakub Narebski <jnareb@gmail.com>
+    Signed-off-by: Junio C Hamano <junkio@cox.net>
+
+commit 6d297f81373e19d86b8f02cb68120201d1b0ab1d
+Author: Johannes Schindelin <Johannes.Schindelin@gmx.de>
+Date:   Sat Jul 8 18:42:41 2006 +0200
+
+    Status update on merge-recursive in C
+    
+    This is just an update for people being interested. Alex and me were
+    busy with that project for a few days now. While it has progressed nicely,
+    there are quite a couple TODOs in merge-recursive.c, just search for "TODO".
+    
+    For impatient people: yes, it passes all the tests, and yes, according
+    to the evil test Alex did, it is faster than the Python script.
+    
+    But no, it is not yet finished. Biggest points are:
+    
+    - there are still three external calls
+    - in the end, it should not be necessary to write the index more than once
+      (just before exiting)
+    - a lot of things can be refactored to make the code easier and shorter
+    
+    BTW we cannot just plug in git-merge-tree yet, because git-merge-tree
+    does not handle renames at all.
+    
+    This patch is meant for testing, and as such,
+    
+    - it compile the program to git-merge-recur
+    - it adjusts the scripts and tests to use git-merge-recur instead of
+      git-merge-recursive
+    - it provides "TEST", a script to execute the tests regarding -recursive
+    - it inlines the changes to read-cache.c (read_cache_from(), discard_cache()
+      and refresh_cache_entry())
+    
+    Brought to you by Alex Riesen and Dscho
+    
+    Signed-off-by: Junio C Hamano <junkio@cox.net>
+
+commit 7baa3e8694d823ce9731172c700bf0d780ae283e
+Author: Johannes Schindelin <Johannes.Schindelin@gmx.de>
+Date:   Sat Oct 15 11:10:46 2005 -0700
+
+    Some curl versions lack curl_easy_duphandle()
+    
+    Hi,
+    
+    On Fri, 14 Oct 2005, Junio C Hamano wrote:
+    
+    > Johannes Schindelin <Johannes.Schindelin@gmx.de> writes:
+    >
+    > > This patch looks bigger than it really is: The code to get the
+    > > default handle was refactored into a function, and is called
+    > > instead of curl_easy_duphandle() if that does not exist.
+    >
+    > I'd like to take Nick's config file patch first, which
+    > unfortunately interferes with your patch.  I'd hate to ask you
+    > this, but could you rebase it on top of Nick's patch, [...]
+    
+    No need to hate it. Here comes the rebased patch, and this time, I
+    actually tested it a bit.
+    
+    Signed-off-by: Junio C Hamano <junkio@cox.net>

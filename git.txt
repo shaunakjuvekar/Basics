@@ -1,0 +1,38 @@
+Exercise: 1) What is the method signature (return type, method name, and parameters) of the last function in this blob?
+
+-> The method signature is - (integer,  cmd_worktree, (int ac, const char **av, const char *prefix) )
+
+Exercise: 2) What is the latest version of the release notes (RelNotes....txt) for the git repository?
+
+-> v2.30 
+
+Exercise: 3) What is the output of git cat-file -p 83484f | tail -4 | head -1? Briefly explain what this command does.
+
+-> output :- 100644 blob f55d4083edd518a0dad26a37ac4d5c6877184c4f	tutorial.txt
+
+git cat-file -p 83484f displays all the contents of the file row-wise. Then passing on that output to tail -4 only displays the last 4 rows. This output passed to head -1 only displayed the first row out of the remaining 4 rows.
+
+Exercise: 5) What is the commit message submitted with this commit? ( git cat-file -p 834845 )
+
+->  The message is “Update German translation for Git v2.31.0”
+
+Exercise: 6) Write a bash command(s) to search the commit graph for commits that mention the word "refactored". Then, run the command and add the output (answer should include command and output).
+
+-> The command I used is git log --grep="refactored". The output is stored in tempFile.txt
+
+Exercise: 7) What is the name of the first file listed that changed between versions 2.31.0 and 2.31.1?
+
+->  Name of the file is : Documentation/RelNotes/2.31.1.txt
+
+Exercise: 8) Provide a list of all the branches for the git repository.
+
+-> git branch -a
+* master
+  remotes/origin/HEAD -> origin/master
+  remotes/origin/jch
+  remotes/origin/main
+  remotes/origin/maint
+  remotes/origin/master
+  remotes/origin/next
+  remotes/origin/seen
+  remotes/origin/todo

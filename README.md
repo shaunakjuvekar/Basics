@@ -3,3 +3,7 @@
 Shaunak Juvekar
 
 "Hello GitHub!"
+
+Scrum call - Ramaraja Ramanujan ramaraja@vt.edu
+
+ 
